@@ -8,6 +8,8 @@ All original crash reports and stackshot spindumps referenced in this guide are 
 
 For historical development logs, earlier iterations, and rejected approaches, see [**`WORKING_NOTES.md`**](WORKING_NOTES.md) (or `WORKING_NOTES.txt`).
 
+AI tools were used in assisting with development of these patches as well as for some initial triage and discovery and exploration. 
+
 ---
 
 ## Table of Contents
