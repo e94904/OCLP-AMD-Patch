@@ -1,0 +1,362 @@
+==============================================================================
+   AMD Sequoia Graphics Patcher: Development Working Notes & Historical Log
+==============================================================================
+Historical notes, research logs, and development timeline for macOS 15 Sequoia.
+For primary technical documentation and reverse-engineering guide, see README.txt.
+
+WHAT THIS FIXES:
+  1. Safari & Preview Freezes / Crashes:
+     Eliminates the permanent beachball freeze or instant crash when loading
+     HDR, HEIC, or Display P3 wide-gamut images.
+  2. Safari Touch Icons & Favicons Crash:
+     Fixes the EXC_BAD_ACCESS (SIGSEGV at 0x60) and EXC_ARITHMETIC (SIGFPE)
+     crashes when WebCore processes web touch icons and favicons.
+  3. iStat Menus 7 Launch Crash:
+     Fixes the crash immediately on application launch (SceneKit render reflection).
+
+SUPPORTED HARDWARE & CROSS-GPU COMPATIBILITY:
+  Does this fix apply to other AMD systems with different GPUs?
+  YES. Apple uses unified driver bundles across architectural families.
+  All legacy AMD GCN 1, GCN 2, and GCN 3 GPUs share the EXACT same driver
+  binaries distributed by OpenCore Legacy Patcher (OCLP):
+    - AMDMTLBronzeDriver.bundle (Metal userland driver)
+    - libAMDIL902.dylib (compiler plugin)
+  This includes:
+    - MacBook Pro 15" Mid-2015 (Radeon R9 M370X)
+    - Mac Pro 2013 "Trash Can" (Dual FirePro D300 / D500 / D700)
+    - iMac 27" 5K Late 2014 & Mid-2015 (Radeon R9 M290X / M295X)
+    - iMac 27" 5K Late 2015 (Radeon R9 M380 / M390 / M395 / M395X)
+    - iMac 27" Late 2012 & Late 2013 (HD 7750M / 7800M series)
+    - Mac Pro 2010-2012 / Hackintosh (HD 7870, 7950, 7970, R9 280, 290, 380, 390)
+
+==============================================================================
+1. HOW WE FOUND THE ISSUE (SPINDUMP & DIAGNOSTICS)
+==============================================================================
+
+- How did we know it was stuck in semaphore_wait_trap?
+  When Safari froze on an HDR image, macOS system diagnostics (spindump)
+  captured Safari's main thread waiting in the kernel:
+
+    Thread 0x14a0:
+      37  thread_start + 15 (libsystem_pthread.dylib + 6231)
+        37  _pthread_start + 115 (libsystem_pthread.dylib + 24069)
+          37  caulk::concurrent::details::worker_thread::run() + 30
+            37  semaphore_wait_trap + 10 (libsystem_kernel.dylib + 2758)
+
+  This proved Safari was NOT in an infinite CPU loop. It was blocked
+  waiting synchronously on an XPC reply from com.apple.MTLCompilerService.
+
+- Where did xdr::convert_image_to_image_loop come from?
+  Tracing ImageIO's image decoding pipeline:
+    CGImageDestinationAddImage -> IIOImageDestination::addImage
+    -> HDRImageConverter_Metal convertImage:toImage:.
+  Inside /System/Library/Frameworks/ImageIO.framework/Versions/A/Resources/
+  default.metallib, we found the compute shaders used for HDR conversion.
+  The primary HDR compute function is:
+    xdr::convert_image_to_image_loop (with xdr::kSamplingSize = {1, 1}).
+
+  Differential GPU Isolation Test:
+  Compiling this shader on the integrated Intel Iris Pro GPU succeeded in 0.05s.
+  Compiling on the discrete AMD Radeon R9 M370X GPU instantly killed
+  MTLCompilerService with SIGSEGV (Exit Code 11).
+  This differential test isolated the breakdown directly to the AMD
+  compiler plugin (libAMDIL902.dylib).
+
+==============================================================================
+2. BUG 1: COMPILER CRASH AT 0x7DC05 (libAMDIL902.dylib)
+==============================================================================
+
+- Where did 0x7DC05 come from?
+  From the spindump stack frame (line 20093 of Safari Freeze 4.txt):
+    initializeIABArgTypeSet(llvm::Argument*) + 73 (libAMDIL902.dylib + 515077) [0x5e64a0c05]
+  Base address of libAMDIL902.dylib was 0x5e6423000.
+  0x5e64a0c05 - 0x5e6423000 = 0x7DC05 (which is 515077 in decimal).
+  It was the exact hardware crash instruction reported by macOS!
+
+- Reverse engineering 0x7DC05 with otool:
+    0x7DBFE: leaq -0x48(%rbp), %r15
+    0x7DC02: movq 0x80(%rax), %rax   ## rax = argument metadata pointer
+    0x7DC05: movq (%rax), %rdx       ## DEREFERENCE! If rax is NULL -> CRASH!
+    0x7DC08: movq %r15, %rdi
+    0x7DC0E: callq 0x7DC82          ## insert into SmallPtrSet
+
+- Why was 0x80(%rax) NULL?
+  When AMD wrote this driver in 2015 for Monterey/Big Sur, Apple's compiler
+  always populated this metadata pointer. On macOS 15 Sequoia, modern compute
+  kernels leave 0x80(%rax) as NULL (0x0). The driver had no null check,
+  so it dereferenced 0x0 and crashed with EXC_BAD_ACCESS.
+
+- The Fix:
+  Code cave at 0xAD0430 checks "testq %rax, %rax; je skip".
+  If NULL, it safely skips insertion and jumps back to 0x7DC1E.
+  MTLCompilerService now completes compilation in 0.2s without crashing!
+
+==============================================================================
+3. BUG 2: REFLECTION CRASH AT 0x910E0 (MetalOld.dylib)
+==============================================================================
+
+- Where did 0x910E0 and MTLInputStageReflectionReader::deserialize come from?
+  From the crash log (safari crash 2.txt):
+    Thread 0 Crashed: Dispatch queue: com.apple.main-thread
+    0 MetalOld.dylib 0x10b7f70e0 MTLInputStageReflectionReader::deserialize(...) + 222
+    1 MetalOld.dylib 0x10b84e83f -[MTLFunctionReflectionInternal initWithDevice:...] + 573
+  Base address of MetalOld.dylib was 0x10b766000.
+  0x10b7f70e0 - 0x10b766000 = 0x910E0.
+
+- What is "Shader Reflection" & "MTLPSBIN"?
+  Reflection is the metadata describing a shader's arguments (e.g. imgIn,
+  imgOut, coords, size) so the application can bind buffers to GPU slots.
+  At 0x9109E, MetalOld.dylib checks if byte 0 matches ASCII "MTLPSBIN"
+  ("Metal Pipeline State Binary").
+
+==============================================================================
+4. THE CORE PROBLEM: UNEXPECTED STRUCT LAYOUTS & CONTAINER ENVELOPES
+==============================================================================
+
+Based on the forensic disassembly and data structures analyzed above, this failure
+occurs because of two structural mismatches between modern macOS 15 and the
+legacy 2015 driver:
+
+1. The Argument Mismatch in the Compiler:
+   In macOS 12, every shader argument was a simple type with a valid descriptor
+   pointer at 0x80(%rax). In macOS 15, modern HDR arguments pass NULL for that
+   legacy pointer. Because the 2015 driver lacked a null check, it dereferenced
+   NULL and crashed.
+
+2. The Extra 80 Bytes & The "4 Billion Arguments" Catastrophe:
+   Stock MetalOld.dylib expected reflection data to start IMMEDIATELY at byte 0
+   with "MTLPSBIN".
+   In macOS 15, Apple wrapped reflection inside an 80-byte outer envelope
+   starting with magic 0xef13c710. The buffer was 80 bytes longer than expected!
+
+   Because MetalOld.dylib did not find "MTLPSBIN" at byte 0, it treated the
+   stream as an older format where byte 0 represented the argument count.
+   It read 0xef13c710 as a number (4,011,048,720 in decimal).
+   Parsing 0xef13c710 as an argument count caused MetalOld to index stack
+   memory for 4 billion argument descriptors, generating out-of-bounds
+   pointer 0x1ed400000001 and crashing at 0x910E0.
+
+3. How the Patch Solves It:
+   - libAMDIL902: Adds a 3-instruction null check (testq %rax, %rax; je skip).
+     When an argument has no legacy descriptor, it skips it instead of crashing.
+   - libAMDFix: Acts like an envelope opener. It intercepts the reflection data,
+     detects 0xef13c710, uses Apple's GCD dispatch_data_create_subrange to slice
+     off the 80-byte envelope, and hands clean "MTLPSBIN" to MetalOld.dylib.
+   - MetalOld sees "MTLPSBIN" at byte 0, reads exactly 6 arguments (not 4 billion!),
+     and deserializes them in 0.001 seconds!
+
+==============================================================================
+5. BUG 3: iSTAT MENUS 7 & SCENEKIT RENDER PIPELINE CRASH
+==============================================================================
+
+- Where did the crash occur?
+  From the crash log (iStat Menus-2026-09-05-101149.ips):
+    Thread 1 Crashed: Dispatch queue: com.apple.root.default-qos
+    0 MetalOld.dylib 0x1d97d00e0 MTLInputStageReflectionReader::deserialize(...) + 222
+    1 MetalOld.dylib 0x1d9856605 -[MTLRenderPipelineReflectionInternal initWithVertexData:fragmentData:serializedVertexDescriptor:device:options:flags:] + 207
+    2 MetalOld.dylib 0x1d984a0e1 newRenderPipeline(...) + 590
+    3 SceneKit       -[SCNMTLResourceManager _createPipelineStateWithDescriptor:desc:pipeline:] + 629
+
+- Why did it happen?
+  When iStat Menus 7 launches, it initializes 3D status meters using Apple's
+  SceneKit framework. SceneKit creates a Render Pipeline with vertex and fragment
+  shaders. Just like compute shaders, macOS 15 wraps both vertexData and fragmentData
+  reflection streams inside the 80-byte 0xef13c710 container.
+  When SceneKit called initWithVertexData:fragmentData:..., MetalOld.dylib tried to
+  deserialize both raw envelopes without stripping the header, hitting the exact
+  same out-of-bounds stack write at 0x910E0 (+222)!
+
+- The Fix:
+  libAMDFix.dylib intercepts -[MTLRenderPipelineReflectionInternal
+  initWithVertexData:fragmentData:...], initWithTileData:..., and
+  initWithObjectData:... to transparently slice off the 80-byte header, handing
+  pristine "MTLPSBIN" to MetalOld.dylib for both render and compute pipelines.
+
+==============================================================================
+6. BUG 4: SAFARI SIGFPE DIVIDE-BY-ZERO IN HDRImageConverter_Metal
+==============================================================================
+
+- Where did the crash occur?
+  From the crash log (Safari-2026-09-05-102049.ips):
+    Exception Type:   EXC_ARITHMETIC (SIGFPE)
+    Exception Codes:  0x0000000000000001, 0x0000000000000000
+    Termination Signal: Floating point exception: 8
+    Crashed Thread:   0 Dispatch queue: com.apple.main-thread
+    0 ImageIO         -[HDRImageConverter_Metal convertImage:transform:toImage:transform:] + 514
+    1 ImageIO         IIOImageDestination::addImage(...) + 704
+    2 WebCore         WebCore::createIconDataFromBitmaps(...)
+
+- Disassembly of the Crash in ImageIO:
+    0x7ff8137acf4b <+437>: movq   %r14, %rdi         ## %r14 = encoder for buffer 1
+    0x7ff8137acf4e <+440>: movq   %r13, %rsi         ## @selector(alignment)
+    0x7ff8137acf54 <+446>: callq  *0x3229ac8e(%rip)  ## [encoder alignment]
+    ...
+    0x7ff8137acf8c <+502>: movq   %rax, %rcx         ## %rcx = alignment!
+    0x7ff8137acf8f <+505>: leaq   (%rbx,%r14), %rax  ## %rax = (len + align)
+    0x7ff8137acf93 <+509>: decq   %rax               ## %rax = (len + align - 1)
+    0x7ff8137acf96 <+512>: xorl   %edx, %edx         ## %rdx = 0
+    0x7ff8137acf98 <+514>: divq   %rcx               ## CPU DIVIDE BY %rcx!
+
+- Why did %rcx equal 0?
+  In HDRImageConverter_Metal, ImageIO calls:
+    id enc = [fn newArgumentEncoderWithBufferIndex: 1];
+  and then calculates buffer memory alignment using:
+    aligned_size = ((enc.encodedLength + enc.alignment - 1) / enc.alignment) * enc.alignment;
+
+  If an argument buffer index does not exist in the shader (e.g. buffer 2 or 7 in
+  xdr::compute_luma_gain_histogram_8x8), newArgumentEncoderWithBufferIndex: returns nil.
+  Apple's ImageIO code NEVER checks for nil.
+  In Objective-C, sending any message to nil returns 0:
+    [nil alignment] -> 0!
+  ImageIO then executes "divq %rcx" where %rcx = 0, triggering an immediate CPU
+  divide-by-zero hardware trap (SIGFPE) and killing Safari!
+
+- The Fix:
+  libAMDFix.dylib hooks newArgumentEncoderWithBufferIndex: on _MTLFunction.
+  If a requested buffer index returns nil or alignment == 0, libAMDFix returns an
+  AMDFallbackEncoder object:
+    - [fallback alignment] returns 16
+    - [fallback encodedLength] returns 0
+    - All encoding operations safely no-op.
+  When ImageIO performs alignment math:
+    ((0 + 16 - 1) / 16) * 16 = 0!
+  Zero bytes allocated, zero division by zero, and Safari renders smoothly without crashing!
+
+==============================================================================
+7. BUG 5: SAFARI SIGSEGV AT 0x60 IN IMAGEIO (constantDataAtIndex: / Touch Icons)
+==============================================================================
+
+- The Crash:
+  Visiting websites like theanimecommunity.com (or loading touch icons/favicons)
+  triggered an immediate segmentation fault in Safari:
+    Exception Type:   EXC_BAD_ACCESS (SIGSEGV)
+    Exception Subtype: KERN_INVALID_ADDRESS at 0x0000000000000060
+    Faulting Thread:  0
+    0 ImageIO -[HDRImageConverter_Metal encodeInputImage:transform:toBuffer:offset:withArgumentEncoder:computeEncoder:index:textures:] + 398
+    1 ImageIO -[HDRImageConverter_Metal convertImage:transform:toImage:transform:] + 982
+    2 ImageIO -[HDRImageConverter convertImage:toImage:] + 1066
+    3 ImageIO IIOConvertHDRData + 235
+    4 ImageIO WebCore::createIconDataFromBitmaps(...) + 221
+
+- Disassembly at the crash location:
+    0x7ff820fafad2: movq 0x3349344f(%rip), %rsi   ; @selector(constantDataAtIndex:)
+    0x7ff820fafad9: movl $0x3, %edx               ; index = 3
+    0x7ff820fafade: movq -0x30(%rbp), %rdi        ; withArgumentEncoder
+    0x7ff820fafae2: callq *0x3229c100(%rip)       ; [argumentEncoder constantDataAtIndex:3]
+    0x7ff820fafae8: movq -0x58(%rbp), %rcx        ; pointer to 128-byte 4x4 matrix
+    0x7ff820fafaec: vmovups (%rcx), %ymm0
+    0x7ff820fafaf0: vmovups 0x20(%rcx), %ymm1
+    0x7ff820fafaf5: vmovups 0x40(%rcx), %ymm2
+    0x7ff820fafafa: vmovups 0x60(%rcx), %ymm3
+    0x7ff820fafaff: vmovups %ymm3, 0x60(%rax)     ; CRASH! %rax is NULL (0x0)! 0x0 + 0x60 = 0x60!
+    0x7ff820fafb04: vmovups %ymm2, 0x40(%rax)
+    0x7ff820fafb09: vmovups %ymm1, 0x20(%rax)
+    0x7ff820fafb0e: vmovups %ymm0, (%rax)
+
+- Why did %rax equal NULL?
+  For shaders where buffer arguments are missing (e.g. buffer 2 and 7 in
+  xdr::compute_luma_gain_histogram_8x8), the system returns AMDFallbackEncoder.
+  ImageIO immediately calls [argumentEncoder constantDataAtIndex: 3] to copy a
+  128-byte transform matrix.
+  Previously, AMDFallbackEncoder did not implement constantDataAtIndex:. It
+  forwarded the invocation to a no-op handler, returning NULL (0x0) in %rax.
+  ImageIO unconditionally wrote into 0x60(%rax), crashing at address 0x60!
+
+- The Fix:
+  1. AMDFallbackEncoder allocates a char _dummy[4096] scratch buffer and implements
+     -[AMDFallbackEncoder constantDataAtIndex:] returning _dummy, plus complete
+     protocol methods for <MTLArgumentEncoder>. Any 128-byte matrix writes safely
+     land inside the buffer without crashing.
+  2. Swizzles constantDataAtIndex: on BronzeMtlIndirectArgumentBufferEncoder to return
+     dummy[4096] if the real driver encoder ever returns NULL or throws.
+  3. Guarantees that neither real nor fallback encoders can ever return a NULL pointer.
+
+==============================================================================
+8. BOOT SAFETY: WHY METALOLD.DYLIB IS NEVER TOUCHED
+==============================================================================
+
+- Isn't MetalOld.dylib made by OCLP?
+  NO. MetalOld.dylib is Apple's original, closed-source Metal.framework
+  from macOS Monterey/Ventura, extracted and repackaged by Dortania/OCLP.
+
+- Attempt 9: Modifying MetalOld.dylib on disk (Speculation vs. Reality):
+  In Attempt 9, we tested patching MetalOld.dylib on disk with a code cave at 0x1df000.
+  The Mac hung at the 25% Apple logo.
+  Initial speculation: We thought macOS or OCLP had boot-time signature validation.
+  Reality: Disassembly showed no signature check occurred (OCLP injects AMFIPass).
+  Instead, the cave was placed outside executable memory, corrupted the stack frame
+  (-0xf0(%rbp)), and caused WindowServer to crash with SIGSEGV in a loop on boot.
+  Attempt 9 was abandoned to avoid affecting other Macs sharing MetalOld.dylib.
+
+- Why We Keep MetalOld.dylib 100% Stock on Disk:
+  1. MetalOld.dylib is not defective: It parses clean MTLPSBIN buffers in milliseconds.
+     Slicing off the 80-byte outer envelope dynamically solves the problem.
+  2. Cross-GPU safety: MetalOld.dylib is shared across other legacy GPUs (Nvidia Kepler,
+     Intel HD 4000). Modifying it risks breaking other machines.
+  3. OCLP update resilience: OCLP root patches overwrite MetalOld.dylib on every system
+     update. Keeping our fix inside AMDMTLBronzeDriver ensures the patch survives.
+
+- The Working Zero-Risk Solution (libAMDFix.dylib):
+  MetalOld.dylib on disk remains 100% UNTOUCHED STOCK (MD5: 38196df11c0cf44b10c8b1d4f46407f9).
+  WindowServer boots 100% normally.
+
+  Instead, we inject LC_LOAD_DYLIB into AMDMTLBronzeDriver pointing to
+  libAMDFix.dylib. When Safari, Preview, or SceneKit loads the AMD driver,
+  libAMDFix automatically initializes in process memory:
+    1. Unwraps 0xef13c710 reflection containers for all function, compute,
+       and render pipelines.
+    2. Guards argument encoders against nil, zero alignment, and NULL constant data.
+    3. Hands clean "MTLPSBIN" directly to unmodified stock MetalOld.dylib!
+
+==============================================================================
+9. HOW TO VERIFY OFFLINE (src/test_end_to_end.m)
+==============================================================================
+
+We have included the offline test tool in src/test_end_to_end.m.
+You can compile and run it anytime in Terminal:
+  clang -framework Foundation -framework Metal src/test_end_to_end.m -o test_end_to_end
+  ./test_end_to_end
+
+Expected Output:
+  ========================================================
+    AMD GPU + Stock MetalOld.dylib Offline Verification
+  ========================================================
+  [+] Active Device: AMD Radeon R9 M370X
+
+  [Test 1/4] Verifying Render Pipeline Reflection (iStat Menus fix)...
+  [+] PASS: Render pipeline created cleanly without crashing! (pipe=..., refl=...)
+
+  [Test 2/4] Verifying Compute Pipeline Reflection (HEIC / Preview fix)...
+  [+] PASS: Compute pipeline & reflection created cleanly! (pipe=..., refl=...)
+
+  [Test 3/4] Verifying Argument Encoder Safety (Safari SIGFPE fix)...
+      Buffer 1: enc=BronzeMtlIndirectArgumentBufferEncoder align=16 len=144 -> aligned_size=144
+      Buffer 2: enc=AMDFallbackEncoder align=16 len=0 -> aligned_size=0
+      Buffer 5: enc=BronzeMtlIndirectArgumentBufferEncoder align=16 len=368 -> aligned_size=368
+      Buffer 7: enc=AMDFallbackEncoder align=16 len=0 -> aligned_size=0
+  [+] PASS: All buffer encoders safe, zero divide-by-zero risk!
+
+  [Test 4/4] Verifying Constant Data Write Safety (Safari SIGSEGV at 0x60 fix)...
+      Buffer 1: enc=BronzeMtlIndirectArgumentBufferEncoder constantData=... -> 128-byte write safe!
+      Buffer 2: enc=AMDFallbackEncoder constantData=... -> 128-byte write safe!
+      Buffer 5: enc=BronzeMtlIndirectArgumentBufferEncoder constantData=... -> 128-byte write safe!
+      Buffer 7: enc=AMDFallbackEncoder constantData=... -> 128-byte write safe!
+  [+] PASS: All encoders return non-null constantData, zero crash risk!
+
+  ========================================================
+    VERIFICATION COMPLETE: ALL 4 SUBSYSTEMS PASSED (Exit 0)
+  ========================================================
+
+==============================================================================
+10. HOW TO USE THE PATCHER
+==============================================================================
+
+Double-click "Patch.command" in Finder:
+  [1] Quick Install (Precompiled Drivers - Fast & Easy) [DEFAULT]
+  [2] Custom Build & Patch (In-Place Source Build - 100% Transparent)
+  [3] Revert Patch (Restore stock AMD drivers from src/backups/)
+  [4] Check Current Status
+  [5] Exit
+
+Restart your Mac after applying or reverting!
+==============================================================================

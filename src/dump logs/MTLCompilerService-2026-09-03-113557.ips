@@ -1,0 +1,372 @@
+{"app_name":"MTLCompilerService","timestamp":"2026-09-03 11:35:57.00 -0700","app_version":"263.8","sroute_id":16,"slice_uuid":"3716d20f-b990-3906-b3e5-44e88ae63af8","build_version":"263.8","platform":1,"bundleID":"com.apple.MTLCompilerService","share_with_app_devs":1,"is_first_party":1,"bug_type":"309","os_version":"macOS 15.7.7 (24G720)","roots_installed":0,"name":"MTLCompilerService","incident_id":"00000000-0000-0000-0000-000000000000"}
+{
+  "uptime" : 320,
+  "procRole" : "Unspecified",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "MacBookPro11,5",
+  "coalitionID" : 1006,
+  "osVersion" : {
+    "train" : "macOS 15.7.7",
+    "build" : "24G720",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2026-09-03 11:35:56.7605 -0700",
+  "codeSigningMonitor" : 0,
+  "incident" : "00000000-0000-0000-0000-000000000000",
+  "pid" : 1008,
+  "cpuType" : "X86-64",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "procLaunch" : "2026-09-03 11:35:56.4426 -0700",
+  "procStartAbsTime" : 323231448070,
+  "procExitAbsTime" : 323548860131,
+  "procName" : "MTLCompilerService",
+  "procPath" : "\/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/XPCServices\/MTLCompilerService.xpc\/Contents\/MacOS\/MTLCompilerService",
+  "bundleInfo" : {"CFBundleShortVersionString":"263.8","CFBundleVersion":"263.8","CFBundleIdentifier":"com.apple.MTLCompilerService"},
+  "buildInfo" : {"ProjectName":"Metal","SourceVersion":"263008000000000","BuildVersion":"27"},
+  "parentProc" : "launchd",
+  "parentPid" : 1,
+  "coalitionName" : "com.apple.Safari",
+  "crashReporterKey" : "00000000-0000-0000-0000-000000000000",
+  "appleIntelligenceStatus" : {"state":"unavailable","reasons":["deviceNotCapable"]},
+  "responsiblePid" : 768,
+  "responsibleProc" : "Safari",
+  "consecutiveCrashCount" : 11,
+  "throttleTimeout" : 20,
+  "codeSigningID" : "com.apple.MTLCompilerService",
+  "codeSigningTeamID" : "",
+  "codeSigningFlags" : 570509312,
+  "codeSigningValidationCategory" : 0,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "bootSessionUUID" : "00000000-0000-0000-0000-000000000000",
+  "sip" : "enabled",
+  "sroute_id" : 16,
+  "vmRegionInfo" : "0 is not in any region.  Bytes before following region: 4540125184\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      10e9cd000-10e9d1000    [   16K] r-x\/r-x SM=COW  \/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/XPCServices\/MTLCompilerService.xpc\/Contents\/MacOS\/MTLCompilerService",
+  "exception" : {"codes":"0x0000000000000001, 0x0000000000000000","rawCodes":[1,0],"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x0000000000000000"},
+  "termination" : {"flags":0,"code":11,"namespace":"SIGNAL","indicator":"Segmentation fault: 11","byProc":"exc handler","byPid":1008},
+  "ktriageinfo" : "VM - (arg = 0x0) A memory corruption was found in executable text\n",
+  "vmregioninfo" : "0 is not in any region.  Bytes before following region: 4540125184\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      10e9cd000-10e9d1000    [   16K] r-x\/r-x SM=COW  \/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/XPCServices\/MTLCompilerService.xpc\/Contents\/MacOS\/MTLCompilerService",
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 2,
+  "threads" : [{"id":13733,"frames":[{"imageOffset":26862,"symbol":"__semwait_signal_nocancel","symbolLocation":10,"imageIndex":22},{"imageOffset":176235,"symbol":"nanosleep$NOCANCEL","symbolLocation":188,"imageIndex":23},{"imageOffset":175989,"symbol":"sleep$NOCANCEL","symbolLocation":41,"imageIndex":23},{"imageOffset":72928,"symbol":"_dispatch_queue_cleanup2","symbolLocation":158,"imageIndex":24},{"imageOffset":16015,"symbol":"_pthread_tsd_cleanup","symbolLocation":593,"imageIndex":25},{"imageOffset":25782,"symbol":"_pthread_exit","symbolLocation":71,"imageIndex":25},{"imageOffset":15347,"symbol":"pthread_exit","symbolLocation":42,"imageIndex":25},{"imageOffset":57557,"symbol":"dispatch_main","symbolLocation":102,"imageIndex":24},{"imageOffset":86606,"symbol":"_xpc_objc_main","symbolLocation":676,"imageIndex":26},{"imageOffset":141190,"symbol":"_xpc_main","symbolLocation":33,"imageIndex":26},{"imageOffset":85559,"symbol":"xpc_main","symbolLocation":56,"imageIndex":26},{"imageOffset":9334,"symbol":"main","symbolLocation":139,"imageIndex":0},{"imageOffset":25904,"symbol":"start","symbolLocation":3056,"imageIndex":27}],"threadState":{"r13":{"value":140704684606368,"symbolLocation":96,"symbol":"lsl::sPoolBytes"},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140701808664984},"rsi":{"value":0},"r8":{"value":1},"cr2":{"value":0},"rdx":{"value":1},"r10":{"value":1},"r9":{"value":0},"r15":{"value":0},"rbx":{"value":140701808665000},"trap":{"value":133},"err":{"value":33554855},"r11":{"value":582},"rip":{"value":140703581444334},"rbp":{"value":140701808664960},"rsp":{"value":140701808664904},"r12":{"value":140704682717232,"symbolLocation":0,"symbol":"_pthread_keys"},"rcx":{"value":140701808664904},"flavor":"x86_THREAD_STATE","rdi":{"value":2563}}},{"id":13734,"frames":[{"imageOffset":26906,"symbol":"__sigsuspend_nocancel","symbolLocation":10,"imageIndex":22},{"imageOffset":73116,"symbol":"_dispatch_sigsuspend","symbolLocation":36,"imageIndex":24},{"imageOffset":73080,"symbol":"_dispatch_sig_thread","symbolLocation":49,"imageIndex":24}],"threadState":{"r13":{"value":0},"rax":{"value":4},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":140703580162728,"symbolLocation":0,"symbol":"_dispatch_sigsuspend.mask"},"r8":{"value":123145418899456},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":419432703},"r15":{"value":0},"rbx":{"value":140703580162728,"symbolLocation":0,"symbol":"_dispatch_sigsuspend.mask"},"trap":{"value":133},"err":{"value":33554842},"r11":{"value":514},"rip":{"value":140703581444378},"rbp":{"value":123145418899344},"rsp":{"value":123145418899320},"r12":{"value":0},"rcx":{"value":123145418899320},"flavor":"x86_THREAD_STATE","rdi":{"value":0}}},{"triggered":true,"id":13735,"instructionState":{"instructionStream":{"bytes":[65,95,93,195,85,72,137,229,65,87,65,86,65,85,65,84,83,80,65,137,246,73,137,252,232,119,233,98,255,67,141,52,54,72,137,199,232,107,20,104,255,72,139,80,16,72,139,72,24,72,41,202,72,131,250,20,119,22,72,141,53,210,195,54,0,186,21,0,0,0,72,137,199,232,6,14,104,255,235,29,15,16,5,188,72,133,192,116,13,72,139,128,128,0,0,0,72,139,16,233,196,215,90,255,72,137,233,76,141,5,180,251,82,255,73,199,193,0,0,232,0,72,139,81,8,76,57,194,114,21,73,137,210,77,41,194,77,57,202,119,10,72,139,9,72,133,201,116,22,235,226,72,137,205,49,192,72,141,101,216,91,65,92,65,93,65,94,65,95,93,195,72,139,128,128,0,0,0,72,139,16,195,72,131,195,1,73,139,68,36,48,73],"offset":96}},"threadState":{"r13":{"value":140569490787648},"rax":{"value":0},"rflags":{"value":66050},"cpu":{"value":0},"r14":{"value":140569490799072},"rsi":{"value":0},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":105553127687880},"r10":{"value":2095104},"r9":{"value":1429262336},"r15":{"value":140569490814120},"rbx":{"value":140569490814120},"trap":{"value":14,"description":"(no mapping for user data read)"},"err":{"value":4},"r11":{"value":0},"rip":{"value":25530422332,"matchesCrashFrame":1},"rbp":{"value":15914262832},"rsp":{"value":15914262592},"r12":{"value":140569490799072},"rcx":{"value":15914262632},"flavor":"x86_THREAD_STATE","rdi":{"value":26425535864,"symbolLocation":18446744072684834816,"symbol":"llvm::ILEntryFunc::getInstance()::instance"}},"frames":[{"imageOffset":11338812,"symbol":"llvm::FPPassManager::dumpPassStructure(unsigned int)","symbolLocation":92,"imageIndex":18},{"imageOffset":515582,"symbol":"llvm::ILMetadataPropagation::runAnalysis(llvm::Module&)","symbolLocation":292,"imageIndex":18},{"imageOffset":680715,"symbol":"llvm::ILAnnotateResourceIntrinsics::runOnModule(llvm::Module&)","symbolLocation":595,"imageIndex":18},{"imageOffset":11340297,"symbol":"llvm::legacy::PassManagerImpl::run(llvm::Module&)","symbolLocation":1033,"imageIndex":18},{"imageOffset":602840,"symbol":"llvm::amdMtlPlugin::ILPluginHelper::compileShader(llvm::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>&, char*&, unsigned long long&, char*&, unsigned long long&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>&)","symbolLocation":628,"imageIndex":18},{"imageOffset":95595,"symbol":"AMDBronzeMTLCompilerPlugin::compileShaders(llvm::Module*, void const*, llvm::ILEntryFunc*, char const**)","symbolLocation":143,"imageIndex":17},{"imageOffset":99917,"symbol":"AMDBronzeMTLCompilerPlugin::buildRequest(void const*, unsigned long, unsigned int, void const*, unsigned long, void const**, unsigned long*, void const**, unsigned long*, void const**, unsigned long*, char const**)","symbolLocation":995,"imageIndex":17},{"imageOffset":679210,"symbol":"MTLCompilerPluginInterface::compilerBuildRequest(bool, unsigned int, void const*, unsigned long, unsigned int, void const*, BackendCompilationOutput&)","symbolLocation":192,"imageIndex":11},{"imageOffset":660906,"symbol":"MTLCompilerObject::backendCompileModule(BinaryRequestData&, BackendCompilationOutput&, unsigned long long, std::__1::vector<CompileTimeData, std::__1::allocator<CompileTimeData>>&)","symbolLocation":788,"imageIndex":11},{"imageOffset":680083,"symbol":"MTLCompilerObject::backendCompileExecutableRequest(BinaryRequestData&)","symbolLocation":561,"imageIndex":11},{"imageOffset":689848,"symbol":"MTLCompilerObject::buildRequest(unsigned int, unsigned int, void const*, unsigned long, void (unsigned int, void const*, unsigned long, char const*) block_pointer)","symbolLocation":640,"imageIndex":11},{"imageOffset":729565,"symbol":"split_stack_call_impl","symbolLocation":13,"imageIndex":11},{"imageOffset":729734,"symbol":"split_stack_call","symbolLocation":164,"imageIndex":11},{"imageOffset":681310,"symbol":"MTLCodeGenServiceBuildRequest","symbolLocation":265,"imageIndex":11},{"imageOffset":10211,"symbol":"invocation function for block in MTLCompilerServiceHandleEvent(NSObject<OS_xpc_object>*)","symbolLocation":793,"imageIndex":0},{"imageOffset":53010,"symbol":"_xpc_connection_call_event_handler","symbolLocation":30,"imageIndex":26},{"imageOffset":47867,"symbol":"_xpc_connection_mach_event","symbolLocation":1078,"imageIndex":26},{"imageOffset":96789,"symbol":"_dispatch_client_callout4","symbolLocation":7,"imageIndex":24},{"imageOffset":106088,"symbol":"_dispatch_mach_msg_invoke","symbolLocation":439,"imageIndex":24},{"imageOffset":33171,"symbol":"_dispatch_lane_serial_drain","symbolLocation":319,"imageIndex":24},{"imageOffset":109013,"symbol":"_dispatch_mach_invoke","symbolLocation":513,"imageIndex":24},{"imageOffset":33171,"symbol":"_dispatch_lane_serial_drain","symbolLocation":319,"imageIndex":24},{"imageOffset":36269,"symbol":"_dispatch_lane_invoke","symbolLocation":382,"imageIndex":24},{"imageOffset":72598,"symbol":"_dispatch_root_queue_drain_deferred_wlh","symbolLocation":275,"imageIndex":24},{"imageOffset":70883,"symbol":"_dispatch_workloop_worker_thread","symbolLocation":688,"imageIndex":24},{"imageOffset":10337,"symbol":"_pthread_wqthread","symbolLocation":298,"imageIndex":25},{"imageOffset":6211,"symbol":"start_wqthread","symbolLocation":15,"imageIndex":25}]},{"id":13736,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":25}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":8707},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145419448320},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":0},"rbx":{"value":123145419972608},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703581673524},"rbp":{"value":0},"rsp":{"value":123145419972608},"r12":{"value":0},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145419972608}}},{"id":13737,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":25}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":9475},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145419984896},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145420508024},"rbx":{"value":123145420509184},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703581673524},"rbp":{"value":0},"rsp":{"value":123145420509184},"r12":{"value":5193732},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145420509184}}}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540125184,
+    "CFBundleShortVersionString" : "263.8",
+    "CFBundleIdentifier" : "com.apple.MTLCompilerService",
+    "size" : 16384,
+    "uuid" : "3716d20f-b990-3906-b3e5-44e88ae63af8",
+    "path" : "\/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/XPCServices\/MTLCompilerService.xpc\/Contents\/MacOS\/MTLCompilerService",
+    "name" : "MTLCompilerService",
+    "CFBundleVersion" : "263.8"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540411904,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.CoreWiFi",
+    "size" : 61440,
+    "uuid" : "fd1c2624-54f7-3818-b4a6-61b68f81ffd6",
+    "path" : "\/System\/Library\/PrivateFrameworks\/CoreWiFi.framework\/Versions\/A\/CoreWiFi",
+    "name" : "CoreWiFi",
+    "CFBundleVersion" : "875.46"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4542795776,
+    "size" : 1687552,
+    "uuid" : "d5cf0107-23e9-3d37-bf68-8c6a05c9024c",
+    "path" : "\/System\/Library\/PrivateFrameworks\/CoreWiFi.framework\/Versions\/A\/CoreWiFiOld.dylib",
+    "name" : "CoreWiFiOld.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540297216,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.IO80211",
+    "size" : 16384,
+    "uuid" : "cc837832-e7ac-35d7-8f85-8b121fa96817",
+    "path" : "\/System\/Library\/PrivateFrameworks\/IO80211.framework\/Versions\/A\/IO80211",
+    "name" : "IO80211",
+    "CFBundleVersion" : "1"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540739584,
+    "CFBundleShortVersionString" : "735.2.0",
+    "CFBundleIdentifier" : "com.apple.WiFiPeerToPeer",
+    "size" : 8192,
+    "uuid" : "4677bb02-ab92-31a2-b6c8-943d4e522c6b",
+    "path" : "\/System\/Library\/PrivateFrameworks\/WiFiPeerToPeer.framework\/Versions\/A\/WiFiPeerToPeer",
+    "name" : "WiFiPeerToPeer",
+    "CFBundleVersion" : "735.2"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 6308700160,
+    "size" : 344064,
+    "uuid" : "d5cf0107-6e6e-383c-abe9-d66eb450ae2d",
+    "path" : "\/System\/Library\/PrivateFrameworks\/IO80211.framework\/Versions\/A\/IO80211Old.dylib",
+    "name" : "IO80211Old.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540895232,
+    "CFBundleShortVersionString" : "368.52",
+    "CFBundleIdentifier" : "com.apple.Metal",
+    "size" : 20480,
+    "uuid" : "9d64b352-2dea-3e5f-b839-e8eff3513fce",
+    "path" : "\/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/Metal",
+    "name" : "Metal",
+    "CFBundleVersion" : "368.52"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 8188239872,
+    "size" : 1966080,
+    "uuid" : "6581cd53-8583-38d1-b4b9-773f1dc3f551",
+    "path" : "\/System\/Library\/Frameworks\/Metal.framework\/Versions\/A\/MetalOld.dylib",
+    "name" : "MetalOld.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4540256256,
+    "CFBundleShortVersionString" : "19.0.0",
+    "CFBundleIdentifier" : "com.apple.CoreImage",
+    "size" : 4096,
+    "uuid" : "e139ac2e-6feb-3e44-b7b4-6045fd99d668",
+    "path" : "\/System\/Library\/Frameworks\/CoreImage.framework\/Versions\/A\/CoreImage",
+    "name" : "CoreImage",
+    "CFBundleVersion" : "1510.140.2"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 8199553024,
+    "size" : 3883008,
+    "uuid" : "66ee7d8d-ed35-3650-8b54-9bede38b7ece",
+    "path" : "\/System\/Library\/Frameworks\/CoreImage.framework\/Versions\/A\/CoreImageOld.dylib",
+    "name" : "CoreImageOld.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 8205549568,
+    "size" : 163840,
+    "uuid" : "d5cf0107-33e0-337b-ba08-5e2854254fd0",
+    "path" : "\/System\/Library\/PrivateFrameworks\/WiFiPeerToPeer.framework\/Versions\/A\/WiFiPeerToPeerOld.dylib",
+    "name" : "WiFiPeerToPeerOld.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 12161130496,
+    "CFBundleShortVersionString" : "368.52",
+    "CFBundleIdentifier" : "com.apple.MTLCompiler",
+    "size" : 823296,
+    "uuid" : "d5ce0008-587c-3861-971a-4baefb7b9c5b",
+    "path" : "\/System\/Library\/PrivateFrameworks\/MTLCompiler.framework\/Versions\/32023\/MTLCompiler",
+    "name" : "MTLCompiler",
+    "CFBundleVersion" : "368.52"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 13937901568,
+    "size" : 65536,
+    "uuid" : "d5ce0007-0558-3c70-bf3e-5a97ca02f987",
+    "path" : "\/System\/Library\/PrivateFrameworks\/GPUCompiler.framework\/Versions\/32023\/Libraries\/libGPUCompiler.dylib",
+    "name" : "libGPUCompiler.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 15966777344,
+    "size" : 55033856,
+    "uuid" : "d5ce0007-5107-3a3f-96c8-7f7fbe4fc0f3",
+    "path" : "\/System\/Library\/PrivateFrameworks\/GPUCompiler.framework\/Versions\/32023\/Libraries\/libLLVM.dylib",
+    "name" : "libLLVM.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 17907945472,
+    "size" : 8241152,
+    "uuid" : "d5ce0007-f460-350f-ade9-54bd350ae6f6",
+    "path" : "\/System\/Library\/PrivateFrameworks\/GPUCompiler.framework\/Versions\/32023\/Libraries\/libGPUCompilerImpl.dylib",
+    "name" : "libGPUCompilerImpl.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 19876671488,
+    "size" : 294912,
+    "uuid" : "d5ce0007-aacd-3fdd-9f18-880b96f415c0",
+    "path" : "\/System\/Library\/PrivateFrameworks\/GPUCompiler.framework\/Versions\/32023\/Libraries\/libllvm-flatbuffers.dylib",
+    "name" : "libllvm-flatbuffers.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 21758988288,
+    "size" : 65536,
+    "uuid" : "d5ce0007-43ab-3f9d-8b76-d4fdb8c96635",
+    "path" : "\/System\/Library\/PrivateFrameworks\/GPUCompiler.framework\/Versions\/32023\/Libraries\/libllvm-lmdb.dylib",
+    "name" : "libllvm-lmdb.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 23640977408,
+    "CFBundleShortVersionString" : "0.0.0",
+    "CFBundleIdentifier" : "com.apple.AMDShared",
+    "size" : 114688,
+    "uuid" : "d5cf0007-c497-33d9-8767-c1b2f2f691d2",
+    "path" : "\/System\/Library\/Extensions\/AMDShared.bundle\/Contents\/MacOS\/AMDShared",
+    "name" : "AMDShared",
+    "CFBundleVersion" : "0.0.0"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 25519083520,
+    "size" : 15007744,
+    "uuid" : "d5cf0007-8935-3193-b3f1-d0b3dd0dcc91",
+    "path" : "\/System\/Library\/Extensions\/AMDShared.bundle\/Contents\/PlugIns\/libAMDIL902.dylib",
+    "name" : "libAMDIL902.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 27453083648,
+    "size" : 327680,
+    "uuid" : "d5cf0007-1579-381f-84a5-ebcf7d30cbab",
+    "path" : "\/System\/Library\/Extensions\/AMDRadeonX4000GLDriver.bundle\/Contents\/MacOS\/ATIRadeonX4000SCLib.dylib",
+    "name" : "ATIRadeonX4000SCLib.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 29122875392,
+    "size" : 12517376,
+    "uuid" : "d5cf0007-8c21-37f1-a30b-26af0bd148f0",
+    "path" : "\/System\/Library\/Extensions\/AMDShared.bundle\/Contents\/PlugIns\/libGCNASM.dylib",
+    "name" : "libGCNASM.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 31027531776,
+    "size" : 11452416,
+    "uuid" : "d5cf0007-6636-353e-947e-97973808dc24",
+    "path" : "\/System\/Library\/Extensions\/AMDShared.bundle\/Contents\/PlugIns\/libSC.dylib",
+    "name" : "libSC.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703581417472,
+    "size" : 248608,
+    "uuid" : "a1b690f6-953c-34b8-91cc-860786ff5fa1",
+    "path" : "\/usr\/lib\/system\/libsystem_kernel.dylib",
+    "name" : "libsystem_kernel.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703580241920,
+    "size" : 559704,
+    "uuid" : "2727df96-e5e9-302e-8ea3-766931b52ca1",
+    "path" : "\/usr\/lib\/system\/libsystem_c.dylib",
+    "name" : "libsystem_c.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703579934720,
+    "size" : 291642,
+    "uuid" : "6ca6112a-70c8-39a2-8cfa-da2139709d3c",
+    "path" : "\/usr\/lib\/system\/libdispatch.dylib",
+    "name" : "libdispatch.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703581667328,
+    "size" : 49112,
+    "uuid" : "fa0539b0-b910-38ec-9406-18f7fb96ab75",
+    "path" : "\/usr\/lib\/system\/libsystem_pthread.dylib",
+    "name" : "libsystem_pthread.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703578492928,
+    "size" : 289750,
+    "uuid" : "46e8f77e-bd22-308c-8108-6f55883ac5c0",
+    "path" : "\/usr\/lib\/system\/libxpc.dylib",
+    "name" : "libxpc.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703577841664,
+    "size" : 632520,
+    "uuid" : "8d7a2378-0c9a-3c22-bf24-79ab3cf6d207",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  }
+],
+  "sharedCache" : {
+  "base" : 140703549366272,
+  "size" : 30064771072,
+  "uuid" : "0ae31967-678a-32d5-85ba-70bd6a05c7c8"
+},
+  "vmSummary" : "ReadOnly portion of Libraries: Total=521.4M resident=0K(0%) swapped_out_or_unallocated=521.4M(100%)\nWritable regions: Total=26.8G written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=26.8G(100%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nActivity Tracing                   256K        1 \nKernel Alloc Once                    8K        1 \nMALLOC                           551.1M       26 \nMALLOC guard page                   16K        4 \nSTACK GUARD                       56.0M        5 \nStack                             18.0M        6 \nStack Guard                          4K        1 \nVM_ALLOCATE                      130.7M        5 \nVM_ALLOCATE (reserved)            26.1G       47         reserved VM address space (unallocated)\n__DATA                            19.3M      315 \n__DATA_CONST                      24.0M      317 \n__DATA_DIRTY                       681K       99 \n__FONT_DATA                        2352        1 \n__LINKEDIT                       184.6M       24 \n__OBJC_RO                         61.3M        1 \n__OBJC_RW                         2396K        3 \n__TEXT                           336.8M      331 \n__TPRO_CONST                         16        2 \ndsce.got                           652K        5 \ndyld private memory                384K        3 \nmapped file                       37.0M       13 \nshared memory                       68K        6 \n===========                     =======  ======= \nTOTAL                             27.5G     1216 \nTOTAL, minus reserved VM space     1.4G     1216 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+
+  }
+},
+  "logWritingSignature" : "6d40443dd95963477c10b00066c52e902c901e19",
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "63508950b3714d3622fc77f7",
+      "factorPackIds" : {
+        "SIRI_MEMORY_SYNC_CONFIG" : "6526e111d0c9ce2f459b54a8"
+      },
+      "deploymentId" : 240000015
+    },
+    {
+      "rolloutId" : "66d35d7fe4d6bf7664f40ddf",
+      "factorPackIds" : {
+        "BLACKPEARL_SPARROW" : "67c7824a1baae429bb41b897"
+      },
+      "deploymentId" : 240000069
+    }
+  ],
+  "experiments" : [
+
+  ]
+}
+}
