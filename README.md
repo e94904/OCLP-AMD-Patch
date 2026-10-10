@@ -1,5 +1,7 @@
 # AMD Sequoia Graphics Driver Patcher
 
+[View Source Code on GitHub](https://github.com/e94904/OCLP-AMD-Patch)
+
 Documentation for running macOS 15 Sequoia on legacy AMD GCN 1–3 GPUs (MacBook Pro 15" Mid-2015, Mac Pro 2013, iMac 5K 2014–2015) using OpenCore Legacy Patcher (OCLP).
 
 This guide documents each of the 5 patches: the trigger, the crash log forensics, the exact assembly instructions, and the code transformation pipeline.
