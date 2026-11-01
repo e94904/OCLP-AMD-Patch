@@ -4,7 +4,8 @@ AMD SEQUOIA GRAPHICS DRIVER PATCHER
 Documentation for running macOS 15 Sequoia on legacy AMD GCN 1–3 GPUs
 (MacBook Pro 15" Mid-2015, Mac Pro 2013, iMac 5K 2014–2015) using OCLP.
 
-GitHub: https://github.com/e94904/OCLP-AMD-Patch
+GitHub Repository: https://github.com/e94904/OCLP-AMD-Patch
+Direct Download ZIP: https://github.com/e94904/OCLP-AMD-Patch/archive/refs/heads/main.zip
 
 --------------------------------------------------------------------------------
 TL;DR — QUICK START & SUMMARY OF FIXES
@@ -41,7 +42,10 @@ Prerequisite: In OpenCore-Patcher Settings -> Security, ensure
 "Disable Library Validation" is checked, click "Build and Install OpenCore"
 to your internal EFI partition, and reboot.
 
-Step 1: Download the repository ZIP from GitHub and unzip it.
+Step 1: Download the repository ZIP using either:
+        - Direct download: https://github.com/e94904/OCLP-AMD-Patch/archive/refs/heads/main.zip
+        - Or visit https://github.com/e94904/OCLP-AMD-Patch and click Code -> Download ZIP.
+        Then unzip the downloaded folder.
 Step 2: Double-click Patch.command (or run ./Patch.command in Terminal).
 Step 3: Press 1 (Quick Install - applies precompiled drivers in ~5s),
         enter your admin password when prompted, and reboot your Mac!

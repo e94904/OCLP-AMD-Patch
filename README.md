@@ -1,5 +1,7 @@
 # AMD Sequoia Graphics Driver Patcher
 
+[View Source Code on GitHub](https://github.com/e94904/OCLP-AMD-Patch) · [Direct Download (.zip)](https://github.com/e94904/OCLP-AMD-Patch/archive/refs/heads/main.zip)
+
 [![macOS 15 Sequoia](https://img.shields.io/badge/macOS-15%20Sequoia-blue.svg)](https://www.apple.com/macos/sequoia/)
 [![OCLP](https://img.shields.io/badge/OpenCore-Legacy%20Patcher-orange.svg)](https://dortania.github.io/OpenCore-Legacy-Patcher/)
 [![GPU: AMD GCN 1–3](https://img.shields.io/badge/GPU-AMD%20GCN%201--3-red.svg)](https://en.wikipedia.org/wiki/Graphics_Core_Next)
@@ -55,8 +57,11 @@ Yes, installation is as simple as **downloading the repository, unzipping it, an
 > *(Note: You must click "Build and Install OpenCore" to write the boot argument to EFI; toggling the checkbox in settings alone does not modify your EFI bootloader).*
 
 #### Step 1: Download & Unzip
-1. Click the green **Code** button at the top of the [GitHub Repository](https://github.com/e94904/OCLP-AMD-Patch) and click **Download ZIP** (or run `git clone https://github.com/e94904/OCLP-AMD-Patch.git`).
-2. Double-click the downloaded `.zip` file to extract the `OCLP-AMD-Patch` folder.
+You can download the patch using either method:
+* **Option A (One-Click Direct Download)**: Click [**Download ZIP Archive**](https://github.com/e94904/OCLP-AMD-Patch/archive/refs/heads/main.zip) to immediately download the patch files to your Mac.
+* **Option B (From the GitHub Repository)**: Visit the [**GitHub Repository**](https://github.com/e94904/OCLP-AMD-Patch), click the green **Code** button $\to$ select **Download ZIP** (or run `git clone https://github.com/e94904/OCLP-AMD-Patch.git`).
+
+Once downloaded, double-click the `.zip` file in your Downloads folder to extract the `OCLP-AMD-Patch` folder.
 
 #### Step 2: Run `Patch.command`
 1. Open the unzipped folder in Finder and double-click **`Patch.command`**.
