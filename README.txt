@@ -4,13 +4,50 @@ AMD SEQUOIA GRAPHICS DRIVER PATCHER
 Documentation for running macOS 15 Sequoia on legacy AMD GCN 1–3 GPUs
 (MacBook Pro 15" Mid-2015, Mac Pro 2013, iMac 5K 2014–2015) using OCLP.
 
-This guide documents each of the 5 patches: the trigger, the crash log forensics,
-the exact assembly instructions, and the code transformation pipeline.
+GitHub: https://github.com/e94904/OCLP-AMD-Patch
 
-All original crash reports and stackshot spindumps referenced in this guide
-are provided in src/dump logs/ for reference and forensic verification.
+--------------------------------------------------------------------------------
+TL;DR — QUICK START & SUMMARY OF FIXES
+--------------------------------------------------------------------------------
+This patch fixes all known driver freezes and crashes on macOS 15 Sequoia
+for legacy AMD GCN 1–3 GPUs while keeping MetalOld.dylib 100% stock on disk.
 
-For historical development logs and earlier iterations, see WORKING_NOTES.txt.
+BUGS FIXED:
+1. Safari & Preview HDR/HEIC Beachball Freezes:
+   - Fixes indefinite UI hang caused by a compiler null pointer dereference
+     at offset 0x7DC05 in libAMDIL902.dylib.
+2. Safari / WebKit Crashes on Modern Sites (e.g. AnimeCommunity, Mirruro):
+   - Fixes stack overflow crash (SIGSEGV at 0x910E0) caused by macOS 15
+     wrapping reflection data in an 80-byte 0xef13c710 container envelope.
+3. Safari Bookmark & Touch Icon Crashes:
+   - Fixes SIGFPE divide-by-zero crash in HDRImageConverter_Metal by enforcing
+     indirect argument buffer alignment >= 16.
+4. Safari Color Matrix Crashes:
+   - Fixes SIGSEGV page fault at 0x60 by backing constantDataAtIndex:3 with
+     a safe static 4KB memory buffer.
+5. iStat Menus 7 & SceneKit 3D App Crashes:
+   - Fixes crash on launch by unwrapping both vertex and fragment reflection
+     buffers in -[MTLRenderPipelineReflectionInternal initWithVertexData:...].
+
+SUPPORTED HARDWARE:
+- MacBook Pro (Retina, 15-inch, Mid 2015) — AMD Radeon R9 M370X
+- Mac Pro (Late 2013) — Dual AMD FirePro D300 / D500 / D700
+- iMac (Retina 5K, 27-inch, Late 2014 – Mid 2015) — AMD Radeon R9 M290X / M295X
+- iMac (Retina 5K, 27-inch, Late 2015) — AMD Radeon R9 M380 / M390 / M395 / M395X
+- Any Hackintosh using AMD GCN 1–3 GPUs running macOS 15 Sequoia with OCLP.
+
+HOW TO INSTALL (3 EASY STEPS):
+Prerequisite: In OpenCore-Patcher Settings -> Security, ensure
+"Disable Library Validation" is checked, click "Build and Install OpenCore"
+to your internal EFI partition, and reboot.
+
+Step 1: Download the repository ZIP from GitHub and unzip it.
+Step 2: Double-click Patch.command (or run ./Patch.command in Terminal).
+Step 3: Press 1 (Quick Install - applies precompiled drivers in ~5s),
+        enter your admin password when prompted, and reboot your Mac!
+
+To Check Status: Run Patch.command and select Option 4.
+To Revert:       Run Patch.command and select Option 3 (Restores stock drivers).
 
 --------------------------------------------------------------------------------
 TABLE OF CONTENTS
@@ -345,7 +382,7 @@ C. Why Returning Static 4096-Byte Memory Is Safe:
 --------------------------------------------------------------------------------
 
 1. Backup Phase:
-   - Original unpatched binaries copied to portable patcher/src/backups/
+   - Original unpatched binaries copied to src/backups/
 
 2. Patch libAMDIL902.dylib:
    - Validate stock MD5 (99d255152b9dc31d1d8a1be52e790a3a).

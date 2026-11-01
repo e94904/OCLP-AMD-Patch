@@ -1,29 +1,142 @@
 # AMD Sequoia Graphics Driver Patcher
 
-[View Source Code on GitHub](https://github.com/e94904/OCLP-AMD-Patch)
+[![macOS 15 Sequoia](https://img.shields.io/badge/macOS-15%20Sequoia-blue.svg)](https://www.apple.com/macos/sequoia/)
+[![OCLP](https://img.shields.io/badge/OpenCore-Legacy%20Patcher-orange.svg)](https://dortania.github.io/OpenCore-Legacy-Patcher/)
+[![GPU: AMD GCN 1–3](https://img.shields.io/badge/GPU-AMD%20GCN%201--3-red.svg)](https://en.wikipedia.org/wiki/Graphics_Core_Next)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-OCLP--AMD--Patch-informational.svg)](https://github.com/e94904/OCLP-AMD-Patch)
 
-Documentation for running macOS 15 Sequoia on legacy AMD GCN 1–3 GPUs (MacBook Pro 15" Mid-2015, Mac Pro 2013, iMac 5K 2014–2015) using OpenCore Legacy Patcher (OCLP).
+Comprehensive fix and technical documentation for running **macOS 15 Sequoia** on legacy **AMD GCN 1–3 GPUs** (MacBook Pro 15" Mid-2015, Mac Pro 2013, iMac 5K 2014–2015) using OpenCore Legacy Patcher (OCLP).
 
-This guide documents each of the 5 patches: the trigger, the crash log forensics, the exact assembly instructions, and the code transformation pipeline.
+This patch completely resolves the notorious Safari beachball freezes, WebKit crashes, and iStat Menus launch crashes caused by macOS 15 Metal 3 shader reflection and compiler mismatches, while keeping `MetalOld.dylib` **100% stock and untouched**.
 
-All original crash reports and stackshot spindumps referenced in this guide are provided in `src/dump logs/` for reference and forensic verification.
+---
 
-For historical development logs, earlier iterations, and rejected approaches, see [**`WORKING_NOTES.md`**](WORKING_NOTES.md) (or `WORKING_NOTES.txt`).
+## ⚡ TL;DR — Quick Start (For Users Who Just Want the Fix)
 
-AI tools were used in assisting with development of these patches as well as for some initial triage and discovery and exploration. 
+### What Bugs & Apps Does This Fix?
+On macOS 15 Sequoia, legacy AMD GCN graphics drivers suffer from several severe compiler and reflection regressions introduced by Apple's redesigned Metal 3 graphics stack. This project provides a targeted zero-risk patch that fixes all 5 known root causes:
+
+| Application / Feature | Bug on Unpatched Sequoia | Root Cause in Driver | Status After Patch |
+| :--- | :--- | :--- | :--- |
+| **Safari & Preview** | **Indefinite beachball freeze** when viewing HDR, HEIC, or Display P3 photos | `com.apple.MTLCompilerService` crashes on a `NULL` pointer dereference at offset `0x7DC05` in `libAMDIL902.dylib` | **Fixed** (Zero freezes; images open instantly) |
+| **Safari / WebKit** | **Instant crash (`SIGSEGV`)** when loading modern websites (e.g., AnimeCommunity, Mirruro) | macOS 15 wraps reflection data in an unexpected 80-byte `0xef13c710` envelope, triggering a stack overflow at `0x910E0` | **Fixed** (80-byte envelope dynamically stripped) |
+| **Safari Touch Icons** | **Divide-by-zero crash (`SIGFPE`)** when bookmarking pages or fetching website favicons | Legacy Bronze driver stub returns `0` alignment for indirect argument buffers; CPU traps on `idivq` | **Fixed** (Enforces safe alignment $\ge 16$) |
+| **Safari Color Matrices** | **Memory fault (`SIGSEGV` at `0x60`)** during HDR color transform matrix writes | Bronze driver lacks Tier 2 IAB and returns `NULL`; AVX vector store writes directly to unmapped address `0x60` | **Fixed** (Backed by safe static 4KB memory buffer) |
+| **iStat Menus 7** | **Crash / freeze on launch** when rendering 3D radial dials and GPU meters | SceneKit render pipelines pass wrapped vertex & fragment reflection buffers into `MetalOld.dylib` | **Fixed** (Both vertex and fragment reflection streams unwrapped) |
+| **SceneKit 3D Apps** | Crashing or failing to initialize 3D graphics pipelines | Shared reflection deserializer crash across all SceneKit apps | **Fixed** (Full 3D graphics acceleration restored) |
+
+---
+
+### Supported Hardware
+* **MacBook Pro (Retina, 15-inch, Mid 2015)** — AMD Radeon R9 M370X (`MacBookPro11,5`)
+* **Mac Pro (Late 2013)** — Dual AMD FirePro D300 / D500 / D700 (`MacPro6,1`)
+* **iMac (Retina 5K, 27-inch, Late 2014 – Mid 2015)** — AMD Radeon R9 M290X / M295X (`iMac15,1`)
+* **iMac (Retina 5K, 27-inch, Late 2015)** — AMD Radeon R9 M380 / M390 / M395 / M395X (`iMac17,1`)
+* Any Hackintosh running macOS 15 Sequoia with AMD GCN 1–3 GPUs (Cape Verde, Pitcairn, Tahiti, Hawaii, Bonaire, Tonga).
+
+---
+
+### 🚀 How to Install (Download, Unzip & Run `Patch.command`)
+
+Yes, installation is as simple as **downloading the repository, unzipping it, and running `Patch.command`**!
+
+> [!IMPORTANT]
+> **ESSENTIAL PREREQUISITE: Disable Library Validation in OpenCore**
+> Because patched drivers are ad-hoc signed, macOS Apple Mobile File Integrity (AMFI) will block the AMD driver if Library Validation is enabled, causing macOS to drop the AMD dGPU and boot into an **Intel Iris Pro-only** state.
+> 
+> **You must do this once (either before running the patch or right after):**
+> 1. Launch **OpenCore-Patcher.app**.
+> 2. Click **Settings** (gear icon) $\to$ **Security**.
+> 3. Check the box for **Disable Library Validation**.
+> 4. Return to the main menu and click **Build and Install OpenCore**.
+> 5. Select your internal disk (e.g. `disk0`) and choose its **EFI partition** (e.g. `disk0s1`).
+> 6. Once finished, **reboot your Mac**.
+> *(Note: You must click "Build and Install OpenCore" to write the boot argument to EFI; toggling the checkbox in settings alone does not modify your EFI bootloader).*
+
+#### Step 1: Download & Unzip
+1. Click the green **Code** button at the top of the [GitHub Repository](https://github.com/e94904/OCLP-AMD-Patch) and click **Download ZIP** (or run `git clone https://github.com/e94904/OCLP-AMD-Patch.git`).
+2. Double-click the downloaded `.zip` file to extract the `OCLP-AMD-Patch` folder.
+
+#### Step 2: Run `Patch.command`
+1. Open the unzipped folder in Finder and double-click **`Patch.command`**.
+   - *If macOS blocks opening with a Gatekeeper warning ("unidentified developer"): Right-click `Patch.command` $\to$ select **Open** $\to$ click **Open**.*
+   - *Alternatively, open Terminal, `cd` into the unzipped folder, and run:*
+     ```bash
+     chmod +x Patch.command
+     ./Patch.command
+     ```
+2. The interactive patcher menu will appear:
+   ```text
+   ==========================================================
+       AMD Sequoia Graphics Patcher (macOS 15 + AMD GCN)
+   ==========================================================
+     Fixes:
+     ✓ Safari & Preview HDR/HEIC beachball freezes & crashes
+     ✓ iStat Menus 7 launch crashes
+     ✓ Safari touch icon & favicon crashes (SIGSEGV at 0x60)
+
+     Safety:
+     ✓ MetalOld.dylib remains 100% UNTOUCHED stock
+   ==========================================================
+
+     [1] Quick Install (Precompiled drivers - Fast, no tools needed) [Default]
+     [2] Custom Build & Patch (Compiles from source & patches in-place)
+     [3] Revert Patch (Restore original unpatched stock drivers)
+     [4] Check Current Status
+     [5] View Technical Documentation (README.txt)
+     [6] View Historical Working Notes (WORKING_NOTES.txt)
+     [7] Exit
+   ```
+3. Press **`1`** (or press Enter) for **Quick Install**.
+   - **No Xcode or build tools required**: Quick Install uses precompiled, verified binaries.
+   - Enter your administrator password when prompted. The script automatically mounts your APFS system volume, backs up your stock drivers to `src/backups/`, installs the patched drivers, keeps `MetalOld.dylib` 100% untouched, and creates a new bootable APFS snapshot with `bless`.
+
+#### Step 3: Reboot
+- Restart your Mac. 
+- You now have full AMD GPU acceleration with zero freezes in Safari/Preview and full compatibility with iStat Menus 7!
+
+---
+
+### How to Check Status & How to Revert
+
+* **Check Patch Status**:
+  Run `Patch.command` and select option **`4` (Check Current Status)**. It verifies whether `libAMDFix.dylib` is loaded, inspects driver hashes, and checks if OpenCore Library Validation is properly disabled.
+* **Revert to Stock Drivers**:
+  If you ever want to uninstall the patch, run `Patch.command` and select option **`3` (Revert Patch)**. It restores the pristine stock drivers from `src/backups/` and blesses a new boot snapshot.
+* **Re-applying after macOS / OCLP Updates**:
+  If a macOS minor update or an OCLP Root Patch update replaces the graphics drivers, simply re-run `Patch.command`, select **`1`**, and reboot.
+
+---
+
+## 🔬 In-Depth Technical Documentation & Forensic Analysis
+*(For developers, security researchers, and those interested in the reverse engineering, disassembly, and code transformations)*
+
+All original crash reports, spindumps, and reproducer files referenced in this guide are located in [`src/dump logs/`](src/dump%20logs/) and [`src/reproducers/`](src/reproducers/) for independent forensic verification.
+
+For historical development logs, previous attempts, and rejected iterations, see [**`WORKING_NOTES.md`**](WORKING_NOTES.md) (or `WORKING_NOTES.txt`).
+
+> [!NOTE]
+> AI tools were used in assisting with the development of these patches as well as for initial triage, disassembly analysis, and exploration.
 
 ---
 
 ## Table of Contents
-1. [Architecture Overview & File Roles](#1-architecture-overview--file-roles)
-2. [Prerequisite: OpenCore Library Validation & EFI Rebuild](#2-prerequisite-opencore-library-validation--efi-rebuild)
-3. [Patch 1: Compiler Null-Dereference at `0x7DC05` (`libAMDIL902.dylib`)](#3-patch-1-compiler-null-dereference-at-0x7dc05-libamdil902dylib)
-4. [Patch 2: Reflection Deserializer Container Mismatch at `0x910E0` (`MetalOld.dylib`)](#4-patch-2-reflection-deserializer-container-mismatch-at-0x910e0-metalolddylib)
-5. [Patch 3: SceneKit Render Pipeline Reflection Crash (iStat Menus 7)](#5-patch-3-scenekit-render-pipeline-reflection-crash-istat-menus-7)
-6. [Patch 4: Indirect Argument Buffer Divide-by-Zero `SIGFPE` (Safari Touch Icons)](#6-patch-4-indirect-argument-buffer-divide-by-zero-sigfpe-safari-touch-icons)
-7. [Patch 5: Indirect Argument Buffer AVX Store at `0x60` `SIGSEGV` (Safari Matrix Stores)](#7-patch-5-indirect-argument-buffer-avx-store-at-0x60-sigsegv-safari-matrix-stores)
-8. [The Code Transformation Pipeline (`patcher.py` & `libAMDFix.m`)](#8-the-code-transformation-pipeline-patcherpy--libamdfixm)
-9. [Offline Verification Test Suite (`test_end_to_end.m`)](#9-offline-verification-test-suite-test_end_to_endm)
+- [⚡ TL;DR — Quick Start (For Users Who Just Want the Fix)](#-tldr--quick-start-for-users-who-just-want-the-fix)
+  - [What Bugs & Apps Does This Fix?](#what-bugs--apps-does-this-fix)
+  - [Supported Hardware](#supported-hardware)
+  - [How to Install (Download, Unzip & Run Patch.command)](#-how-to-install-download-unzip--run-patchcommand)
+  - [How to Check Status & How to Revert](#how-to-check-status--how-to-revert)
+- [🔬 In-Depth Technical Documentation](#-in-depth-technical-documentation--forensic-analysis)
+  1. [Architecture Overview & File Roles](#1-architecture-overview--file-roles)
+  2. [Prerequisite: OpenCore Library Validation & EFI Rebuild](#2-prerequisite-opencore-library-validation--efi-rebuild)
+  3. [Patch 1: Compiler Null-Dereference at `0x7DC05` (`libAMDIL902.dylib`)](#3-patch-1-compiler-null-dereference-at-0x7dc05-libamdil902dylib)
+  4. [Patch 2: Reflection Deserializer Container Mismatch at `0x910E0` (`MetalOld.dylib`)](#4-patch-2-reflection-deserializer-container-mismatch-at-0x910e0-metalolddylib)
+  5. [Patch 3: SceneKit Render Pipeline Reflection Crash (iStat Menus 7)](#5-patch-3-scenekit-render-pipeline-reflection-crash-istat-menus-7)
+  6. [Patch 4: Indirect Argument Buffer Divide-by-Zero `SIGFPE` (Safari Touch Icons)](#6-patch-4-indirect-argument-buffer-divide-by-zero-sigfpe-safari-touch-icons)
+  7. [Patch 5: Indirect Argument Buffer AVX Store at `0x60` `SIGSEGV` (Safari Matrix Stores)](#7-patch-5-indirect-argument-buffer-avx-store-at-0x60-sigsegv-safari-matrix-stores)
+  8. [The Code Transformation Pipeline (`patcher.py` & `libAMDFix.m`)](#8-the-code-transformation-pipeline-patcherpy--libamdfixm)
+  9. [Offline Verification Test Suite (`test_end_to_end.m`)](#9-offline-verification-test-suite-test_end_to_endm)
 
 ---
 
@@ -528,8 +641,8 @@ Here is how the entire patching pipeline operates from raw user files to complet
                                ▼
 [ BACKUP PHASE ]
   Pristine copies saved to:
-  portable patcher/src/backups/libAMDIL902_original.dylib
-  portable patcher/src/backups/AMDMTLBronzeDriver_original
+  src/backups/libAMDIL902_original.dylib
+  src/backups/AMDMTLBronzeDriver_original
                                │
                                ▼
 [ PATCHER PIPELINE: patcher.py ]
@@ -566,10 +679,10 @@ Here is how the entire patching pipeline operates from raw user files to complet
 
 ## 9. Offline Verification Test Suite (`test_end_to_end.m`)
 
-Inside `portable patcher/src/test_end_to_end.m`, a standalone verification test runs directly against the GPU without needing a reboot:
+Inside [`src/test_end_to_end.m`](src/test_end_to_end.m), a standalone verification test runs directly against the GPU without needing a reboot:
 
 ```bash
-clang -fobjc-arc -framework Metal -framework Foundation test_end_to_end.m -o test_end_to_end
+clang -fobjc-arc -framework Metal -framework Foundation src/test_end_to_end.m -o test_end_to_end
 ./test_end_to_end
 ```
 
