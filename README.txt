@@ -417,4 +417,14 @@ Verifies:
   [Test 3/4] Argument Encoder Safety (Safari SIGFPE fix) -> PASS
   [Test 4/4] Constant Data Write Safety (Safari SIGSEGV at 0x60 fix) -> PASS
   Exit Code: 0
+
+--------------------------------------------------------------------------------
+10. ERROR SIGNATURES & TROUBLESHOOTING INDEX
+--------------------------------------------------------------------------------
+- libAMDIL902.dylib 0x7DC05 (SIGSEGV): Safari beachball freeze on HDR/HEIC -> Patch 1
+- MetalOld.dylib 0x910E0 (SIGSEGV): WebKit/Safari crash on modern sites -> Patch 2
+- MetalOld.dylib 0x910E0 render pipeline: iStat Menus 7 crash on launch -> Patch 3
+- ImageIO SIGFPE divide-by-zero: Safari touch icon/favicon crash -> Patch 4
+- ImageIO SIGSEGV at 0x60: Safari HDR transform AVX vector store -> Patch 5
+- Library validation failure: AMD dGPU missing / Iris Pro only -> Disable LV in OCLP
 ================================================================================
