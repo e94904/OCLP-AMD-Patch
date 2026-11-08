@@ -28,6 +28,7 @@ On macOS 15 Sequoia, legacy AMD GCN graphics drivers suffer from several severe 
 | **Safari Color Matrices** | **Memory fault (`SIGSEGV` at `0x60`)** during HDR color transform matrix writes | Bronze driver lacks Tier 2 IAB and returns `NULL`; AVX vector store writes directly to unmapped address `0x60` | **Fixed** (Backed by safe static 4KB memory buffer) |
 | **iStat Menus 7** | **Crash / freeze on launch** when rendering 3D radial dials and GPU meters | SceneKit render pipelines pass wrapped vertex & fragment reflection buffers into `MetalOld.dylib` | **Fixed** (Both vertex and fragment reflection streams unwrapped) |
 | **SceneKit 3D Apps** | Crashing or failing to initialize 3D graphics pipelines | Shared reflection deserializer crash across all SceneKit apps | **Fixed** (Full 3D graphics acceleration restored) |
+| **Chromium / Electron (ANGLE Metal)** | **GPU process crash (`CompilerError Code=2`)** on WebGL2 / UBO shaders | `libAMDIL902.dylib` crashes at `0x7DC05` when compiling indirect argument buffer UBO descriptors | **Fixed** (WebGL2 & Metal UBO shaders compile and render natively) |
 
 ---
 
@@ -130,7 +131,7 @@ Once downloaded, double-click the `.zip` file in your Downloads folder to extrac
 #### Q1: Why does Safari or Preview freeze (spinning beachball) when viewing photos or opening websites in macOS 15 Sequoia?
 
 **A:** In macOS 15 Sequoia, Apple updated the Metal compiler for image processing compute kernels (`convert_image_to_image_loop`). The compiler frontend omits deprecated legacy argument metadata for complex nested structs like `tcIn`. When AMD's 2015 shader compiler (`libAMDIL902.dylib`) processes the kernel, it dereferences a `NULL` pointer at offset `0x7DC05`. This crashes `com.apple.MTLCompilerService` via `EXC_BAD_ACCESS (SIGSEGV)`. Because Safari waits indefinitely on the crashed compiler service over an XPC Mach semaphore, the entire browser window locks up into an unrecoverable spinning beachball.
-*Patch 1 fixes this by installing a safe null-checking trampoline at `0xAD0430`, allowing the compiler to skip null metadata safely and compile without crashing.*
+*Patch 1 fixes this by installing a safe null-checking trampoline in the Mach-O `__TEXT` header zero-padding at `0x900` (preserving live code at `0xAD0430`), allowing the compiler to skip null metadata safely and compile without crashing.*
 
 #### Q2: Why does iStat Menus 7 (or other 3D SceneKit apps) crash immediately on launch?
 
@@ -212,7 +213,7 @@ To maintain boot stability and complete auditability, the system uses two cooper
           (libAMDIL902.dylib)                              (MetalOld.dylib Framework)
                      │                                                 │
         [ PATCH 1: Binary Patch ]                                      │  (100% UNTOUCHED on disk
-       • Jump from 0x7DC02 to 0xAD0430                                 │   to isolate changes to AMD
+       • Jump from 0x7DBFE to 0x900 (header padding)                   │   to isolate changes to AMD
        • Null check on argument #3                                    │   and protect other Macs!)
        • Clean return without crash                                    │
                      │                                                 ▼
@@ -397,11 +398,9 @@ At `0x7DC02`, the original instructions are:
 
 If we tried to write 22 bytes starting at `0x7DC02`, it would overwrite `0x7DC08`, `0x7DC0B`, and `0x7DC0E`, destroying the function's register setup and crashing the compiler.
 
-#### Finding the Code Cave at `0xAD0430`
+#### Finding the Code Cave at `0x900` (and Why `0xAD0430` Must Be Preserved)
 
-Using `otool -l`, we searched the `__TEXT,__text` section for alignment padding (unused trailing `0x00` bytes).
-We located an unused padding region of zero bytes at file offset **`0xAD0430`**.
-Because `0xAD0430` is inside the `__TEXT` segment, macOS assigns it `r-x` (read + execute) permissions at load time, meaning the CPU can execute code in it without triggering a Data Execution Prevention (DEP) crash.
+An earlier revision placed the trampoline at `0xAD0430`, which actually lies inside `__TEXT,__text` at `llvm::FPPassManager::dumpPassStructure+0x50` (straddling a `movups` instruction at `0xAD042C`). Instead, inspecting the Mach-O 64 header (`otool -l`) shows that load commands end at `0x8C8` (`sizeofcmds = 2216`) and the first section (`__TEXT,__text`) begins at `0x3AC0`. File offset **`0x900`** sits inside 12,792 bytes of verified zero-filled header padding mapped `r-x` as part of `__TEXT` (`fileoff = 0`), preserving `0xAD0430` 100% intact.
 
 #### Calculating the Relative Jump
 
@@ -779,8 +778,8 @@ Here is how the entire patching pipeline operates from raw user files to complet
 [ PATCHER PIPELINE: patcher.py ]
   1. Patch libAMDIL902.dylib:
      - Verify MD5 matches stock (99d255152b9dc31d1d8a1be52e790a3a)
-     - Overwrite offset 0x7DC02 with: \xE9\x29\x28\xA5\x00\x90\x90\x90\x90\x90
-     - Overwrite cave 0xAD0430 with trampoline payload
+     - Overwrite offset 0x7DBFE..0x7DC1E with 5-byte jmp to 0x900 + 27 NOPs
+     - Write trampoline payload into verified __TEXT header zero-padding at 0x900
      - Recompute Mach-O code signatures: codesign -f -s -
   
   2. Inject LC_LOAD_DYLIB into AMDMTLBronzeDriver:
@@ -860,7 +859,7 @@ For developers, forensic analysis, and search engine triage, this index cross-re
 
 | Crash Log Signature / Exception | Process / Service | Function / Instruction | Patch & Solution |
 | :--- | :--- | :--- | :--- |
-| `EXC_BAD_ACCESS (SIGSEGV)` `KERN_INVALID_ADDRESS at 0x0` | `com.apple.MTLCompilerService` | `libAMDIL902.dylib` at offset `0x7DC05`<br>`llvm::ILMetadataPropagation::initializeIABArgTypeSet` | [Patch 1](#3-patch-1-compiler-null-dereference-at-0x7dc05-libamdil902dylib): Code cave at `0xAD0430` handles null metadata |
+| `EXC_BAD_ACCESS (SIGSEGV)` `KERN_INVALID_ADDRESS at 0x0` | `com.apple.MTLCompilerService` | `libAMDIL902.dylib` at offset `0x7DC05`<br>`llvm::ILMetadataPropagation::initializeIABArgTypeSet` | [Patch 1](#3-patch-1-compiler-null-dereference-at-0x7dc05-libamdil902dylib): Code cave at `0x900` (`__TEXT` header padding) handles null metadata |
 | `EXC_BAD_ACCESS (SIGSEGV)` `KERN_INVALID_ADDRESS at 0x7ff7...` | `Safari`, `Preview`, `Photos` | `MetalOld.dylib` at offset `0x910E0`<br>`MTLInputStageReflectionReader::deserialize` | [Patch 2](#4-patch-2-reflection-deserializer-container-mismatch-at-0x910e0-metalolddylib): `libAMDFix` strips 80-byte `0xef13c710` envelope |
 | `EXC_BAD_ACCESS (SIGSEGV)` `launchd throttled after OS_REASON_METAL` | `iStat Menus`, `SceneKit` apps | `MetalOld.dylib` at offset `0x910E0`<br>`-[MTLRenderPipelineReflectionInternal initWithVertexData:...]` | [Patch 3](#5-patch-3-scenekit-render-pipeline-reflection-crash-istat-menus-7): `libAMDFix` strips envelope from vertex & fragment streams |
 | `EXC_ARITHMETIC (SIGFPE)` `Floating point exception: 8` | `Safari` (Touch Icon / Favicon) | `ImageIO` `-[HDRImageConverter_Metal convertImage:transform:toImage:transform:]`<br>`idivq %rcx` | [Patch 4](#6-patch-4-indirect-argument-buffer-divide-by-zero-sigfpe-safari-touch-icons): `libAMDFix` enforces alignment $\ge 16$ |
